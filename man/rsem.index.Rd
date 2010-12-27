@@ -5,7 +5,7 @@
 rsem.index function
 }
 \description{
-To be added
+Internal function.
 }
 \usage{
 rsem.index(p, oj)

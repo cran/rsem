@@ -1,0 +1,4 @@
+export(rsem.Ascov,rsem.DP,rsem.emmusig,rsem.index,rsem.indexv,rsem.indexvc,rsem.pattern,rsem,rsem.ssq,rsem.switch,rsem.vec,rsem.vech)
+
+
+
