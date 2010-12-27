@@ -1,6 +1,6 @@
-276debbd8116f2e32ead3ba0934b4bf2 *DESCRIPTION
+780235aac0909b4fdd661a7791a657c9 *DESCRIPTION
 ee5cc799a7db7748f71893f6bc1e1b11 *NAMESPACE
-b1d4c69b48ec68e254f22fffd3975f2e *R/rsem.R
+6a0516f272c8cd37d39536511ee1b5f6 *R/rsem.R
 ea6d6b443829cf2c947cfc338d4e74b8 *data/mardiamv25.txt.gz
 911d2544d8db9ebb78c4ce821bca28bd *data/mardiamv25_contaminated.txt.gz
 de07a8f2a37225452d63371aa7c1584c *man/mardiamv25.Rd
