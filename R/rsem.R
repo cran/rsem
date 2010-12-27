@@ -9,11 +9,311 @@
 ## Version 2012/06/07
 ## Version 2012/08/24 Add the support of Lavaan
 
+
+## from semdiag and REQS
+semdiag.combinations<-
+function (n, r) 
+{
+    v<-1:n
+    v0 <- vector(mode(v), 0)
+    sub <- function(n, r, v) {
+            if (r == 0) 
+                v0
+            else if (r == 1) 
+                matrix(v, n, 1)
+            else if (n == 1) 
+                matrix(v, 1, r)
+            else rbind(cbind(v[1], Recall(n, r - 1, v)), Recall(n - 1, r, v[-1]))
+        }
+    sub(n, r, v[1:n])
+}
+
+## Modified functions from REQS
+semdiag.read.eqs<-function (file) 
+{
+    file.ets <- file
+    file.split <- strsplit(file.ets, "\\.")
+    if (length(file.split[[1]]) > 2) 
+        stop("File name or folders should not contain '.'")
+    if (file.split[[1]][2] != "ets") 
+        stop("File should be of the form 'xxxxxx.ets'")
+    file.cbk <- paste(file.split[[1]][1], ".CBK", sep = "")
+    file.etp <- paste(file.split[[1]][1], ".ETP", sep = "")
+    cbk.info1 <- scan(file.cbk, skip = 2, nlines = 2, quiet = TRUE)
+    cbk.info2 <- scan(file.cbk, skip = 4, nlines = 2, quiet = TRUE)
+    endfile <- scan(file.cbk, nlines = 1, quiet = TRUE)
+    cbk.info.mat <- cbind(cbk.info2, cbk.info1)
+    rownames(cbk.info.mat) <- c("Parameter estimates", "Standard errors", 
+        "Robust standard errors", "Corrected standard errors", 
+        "Gradients", "Sample covariance matrix", "Model Covariance Matrix (Sigma hat)", 
+        "Inverted Information matrix", "Robust inverted information matrix", 
+        "Corrected inverted information matrix", "First derivatives", 
+        "4th Moment weight matrix", "Standardized Elements", 
+        "R-squares", "Factor means", "Univariate statistics (means)", 
+        "Univariate statistics (standard deviations)", "Univariate statistics (skewness)", 
+        "Univariate statistics (kurtosis)", "Univariate statistics (sample size)", 
+        "Dependent variable standardization vector", "Independent variable standardization vector")
+    colnames(cbk.info.mat) <- c("Line Number", "Number of Elements")
+    cbk.base <- read.fwf(file.cbk, widths = c(13, 3), skip = 6, 
+        col.names = c("variable", "line"), buffersize = 1, n = 98)
+    nminfo <- length(which(cbk.base[, 2] == 2))
+    minfo.val <- scan(file.ets, skip = 1, nlines = 1, quiet = TRUE)
+    minfo.dframe <- data.frame(minfo.val)
+    colnames(minfo.dframe) <- "values"
+    rownames(minfo.dframe) <- cbk.base[1:nminfo, 1]
+    start.cbk <- nminfo + 1
+    ntprobs <- length(c(which(cbk.base[, 2] == 3), which(cbk.base[, 
+        2] == 4)))
+    probs.val <- scan(file.ets, skip = 2, nlines = 2, quiet = TRUE)
+    probs.val[which(probs.val == -1)] <- NA
+    probs.dframe <- data.frame(probs.val, row.names = cbk.base[start.cbk:(start.cbk + 
+        ntprobs - 1), 1])
+    colnames(probs.dframe) <- "p-values"
+    start.cbk <- start.cbk + ntprobs
+    nfit <- 60
+    fit.val <- scan(file.ets, skip = 4, nlines = 6, quiet = TRUE)
+    fit.val[which(fit.val == -9)] <- NA
+    fit.dframe <- data.frame(fit.val, row.names = cbk.base[start.cbk:(start.cbk + 
+        nfit - 1), 1])
+    colnames(fit.dframe) <- "fit values"
+    start.cbk <- start.cbk + nfit
+    ndesc <- 9
+    desc.val <- scan(file.ets, skip = 11 - 1, nlines = 1, quiet = TRUE)
+    desc.dframe <- data.frame(desc.val, row.names = cbk.base[start.cbk:(start.cbk + 
+        ndesc - 1), 1])
+    colnames(desc.dframe) <- "values"
+    n.ind <- desc.dframe[8, 1]
+    n.dep <- desc.dframe[9, 1]
+    n.fac <- desc.dframe[3, 1]
+    n.tot <- n.ind + n.dep
+    if (n.ind%%32 == 0) {
+        skiplines <- n.ind/32
+    }else {
+        skiplines <- trunc(n.ind/32) + 1
+    }
+    if (n.dep%%32 == 0) {
+        skiplines <- skiplines + n.dep/32
+    }else {
+        skiplines <- skiplines + trunc(n.dep/32) + 1
+    }
+    parindvec <- scan(file.etp, skip = skiplines, quiet = TRUE)
+    varnames.string <- readLines(file.etp, n = skiplines, warn=FALSE)
+    varnames.chvec <- unlist(strsplit(varnames.string, split = " "))
+    varnames.vec <- varnames.chvec[which(varnames.chvec != "")]
+    nout <- dim(cbk.info.mat)[1]
+    model.list <- as.list(rep(NA, nout))
+    for (i in 1:nout) {
+        startline <- cbk.info.mat[i, 1]
+        if (i != nout) {
+            endlinevec <- cbk.info.mat[(i + 1):nout, 1]
+            endline <- (endlinevec[endlinevec > 0])[1]
+            nlines <- endline - startline
+        }else {
+            if ((cbk.info.mat[i, 2]) > 0) 
+                nlines <- endfile - startline
+            else nlines <- 0
+        }
+        if (startline != 0) {
+            vals <- scan(file.ets, skip = startline - 1, nlines = nlines, 
+                quiet = TRUE)
+        }else {
+            vals <- NA
+        }
+        model.list[[i]] <- vals
+    }
+    par.val <- model.list[[1]]
+    par.pos <- which(parindvec > 0)
+    phi.dim <- n.ind * n.ind
+    gamma.dim <- n.dep * n.ind
+    indpos1 <- (par.pos > (phi.dim)) + (par.pos < (phi.dim + 
+        gamma.dim))
+    cumpos1 <- par.pos[indpos1 == 2]
+    cumpos2 <- par.pos[par.pos > (phi.dim + gamma.dim)]
+    if (length(cumpos1) > 0) 
+        parindvec[cumpos1] <- parindvec[cumpos1] + max(parindvec)
+    if (length(cumpos2) > 0) 
+        parindvec[cumpos2] <- parindvec[cumpos2] + max(parindvec)
+    negpos <- which(parindvec == -1)
+    parindvec[parindvec <= 0] <- NA
+    parvec <- par.val[parindvec]
+    parvec[negpos] <- -1
+    parvec[is.na(parvec)] <- 0
+    cuts <- c(n.ind * n.ind, n.dep * n.ind, n.dep * n.dep)
+    dimlist <- list(c(n.ind, n.ind), c(n.dep, n.ind), c(n.dep, 
+        n.dep))
+    cutfac <- rep(1:3, cuts)
+    parlist <- split(parvec, cutfac)
+    parmat <- mapply(function(xx, dd) {
+        matrix(xx, nrow = dd[1], ncol = dd[2], byrow = TRUE)
+    }, parlist, dimlist)
+    names(parmat) <- c("Phi", "Gamma", "Beta")
+    colnames(parmat$Phi) <- rownames(parmat$Phi) <- colnames(parmat$Gamma) <- varnames.vec[1:n.ind]
+    rownames(parmat$Gamma) <- rownames(parmat$Beta) <- colnames(parmat$Beta) <- varnames.vec[(n.ind + 
+        1):length(varnames.vec)]
+    parse.mat <- NULL
+    for (i in 1:5) parse.mat <- cbind(parse.mat, model.list[[i]])
+    colnames(parse.mat) <- c("Parameter", "SE", "RSE", "CSE", 
+        "Gradient")
+    npar <- dim(parse.mat)[1]
+    namesvec <- NULL
+    partable<-NULL
+    for (i in 1:3) {
+        if (i == 1) {
+            combmat <- semdiag.combinations(dim(parmat[[i]])[1], 2)
+            comb.names <- apply(combmat, 2, function(rn) rownames(parmat[[i]])[rn])
+            par.val0 <- parmat[[i]][lower.tri(parmat[[i]], diag = TRUE)]
+            partable<-rbind(partable, cbind(comb.names, par.val0))
+            }
+        if (i==2) {
+            comb.names <- as.matrix(expand.grid(rownames(parmat[[i]]), 
+                colnames(parmat[[i]])))
+            par.val0 <- as.vector(parmat[[i]])
+            partable<-rbind(partable, cbind(comb.names, par.val0))
+        }
+        if (i ==3){
+        	comb.names <- as.matrix(expand.grid(rownames(parmat[[i]]), 
+                colnames(parmat[[i]])))
+            par.val0 <- as.vector(t(parmat[[i]]))
+            partable<-rbind(partable, cbind(comb.names, par.val0))
+        }
+        par.val.ind <- which(((par.val0 != 0) + (par.val0 != 
+            -1)) == 2)
+        names.mat <- rbind(comb.names[par.val.ind, ])
+        if (i==3) {names <- apply(names.mat, 1, function(ss) paste("(", ss[2], ",", ss[1], ")", sep = ""))
+            }else{
+            names <- apply(names.mat, 1, function(ss) paste("(", ss[1], ",", ss[2], ")", sep = ""))
+            }
+        namesvec <- c(namesvec, names)
+    }
+    if ((dim(parse.mat)[1]) != (length(namesvec))) {
+        parse.mat <- parse.mat[parse.mat[, 1] != 0, ]
+        if ((dim(parse.mat)[1]) == (length(namesvec))) 
+            rownames(parse.mat) <- namesvec
+    }else {
+        rownames(parse.mat) <- namesvec
+    }
+    meanjn <- scan(file.cbk, skip = 1, nlines = 1, quiet = TRUE)[3]
+    Vcheckstr <- colnames(parmat$Phi)
+    compstr <- paste("V", 1:999, sep = "")
+    TFVcheck <- Vcheckstr %in% compstr
+    if (any(TFVcheck)) 
+        depnames.add <- Vcheckstr[TFVcheck]
+    else depnames.add <- NULL
+    VBcheckstr <- colnames(parmat$Beta)
+    TFVBcheck <- VBcheckstr %in% compstr
+    if (any(TFVBcheck)) 
+        depnames.addB <- VBcheckstr[TFVBcheck]
+    else depnames.addB <- NULL
+    depnames <- c(depnames.addB, depnames.add)
+    rm(compstr)
+    if (meanjn == 0) 
+        p <- n.dep
+    else p <- n.dep + 1
+    cov.list <- as.list(rep(NA, 5))
+    names(cov.list) <- c("sample.cov", "sigma.hat", "inv.infmat", 
+        "rinv.infmat", "cinv.infmat")
+    for (i in 6:10) {
+        if (length(model.list[[i]]) > 1) {
+            cov.list[[i - 5]] <- matrix(model.list[[i]], nrow = sqrt(length(model.list[[i]])))
+            if (i <= 7) {
+                dimnames(cov.list[[i - 5]]) <- list(depnames[1:dim(cov.list[[i - 
+                  5]])[1]], depnames[1:dim(cov.list[[i - 5]])[2]])
+                order.V <- order(depnames)
+                cov.list[[i - 5]] <- cov.list[[i - 5]][order.V, 
+                  order.V]
+            }
+            if (i >= 8) 
+                dimnames(cov.list[[i - 5]]) <- list(namesvec, 
+                  namesvec)
+        }
+    }
+    pstar <- p * (p + 1)/2
+    if (length(model.list[[11]]) > 1) {
+        deriv1 <- matrix(model.list[[11]], nrow = npar, ncol = pstar)
+    }
+    else {
+        deriv1 <- NA
+    }
+    if (length(model.list[[12]]) > 1) {
+        moment4 <- matrix(model.list[[12]], nrow = pstar, ncol = pstar)
+    }
+    else {
+        moment4 <- NA
+    }
+    ustatmat <- cbind(model.list[[16]], model.list[[17]], model.list[[18]], 
+        model.list[[19]], model.list[[20]])
+    if (dim(ustatmat)[1] == 1) 
+        ustatmat <- NA
+    else colnames(ustatmat) <- c("means", "sd", "skewness", "kurtosis", 
+        "n")
+    result <- c(list(model.info = minfo.dframe), list(pval = probs.dframe), 
+        list(fit.indices = fit.dframe), list(model.desc = desc.dframe), 
+        parmat, list(par.table = parse.mat), cov.list, list(derivatives = deriv1), 
+        list(moment4 = moment4), list(ssolution = model.list[[13]]), 
+        list(Rsquared = model.list[[14]]), list(fac.means = model.list[[15]]), 
+        list(var.desc = ustatmat), list(depstd = model.list[[21]]), 
+        list(indstd = model.list[[22]]))
+    result
+}
+
+semdiag.run.eqs<-function (EQSpgm, EQSmodel, serial, Rmatrix = NA, datname = NA, 
+    LEN = 2e+06) 
+{
+    res <- semdiag.call.eqs(EQSpgm = EQSpgm, EQSmodel = EQSmodel, serial = serial, 
+        Rmatrix = Rmatrix, datname = datname, LEN = LEN)
+    if (!res) 
+        warning("EQS estimation not successful!")
+    filedir.split <- strsplit(EQSmodel, "/")[[1]]
+    n <- length(filedir.split)
+    etsname <- strsplit(filedir.split[n], "\\.")[[1]][1]
+    etsfile <- paste(etsname, ".ets", sep = "")
+    reslist <- semdiag.read.eqs(etsfile)
+    return(c(list(success = res), reslist))
+}
+
+semdiag.call.eqs<-function (EQSpgm, EQSmodel, serial, Rmatrix = NA, datname = NA, 
+    LEN = 2e+06) 
+{
+    if (!file.exists(EQSmodel)) 
+        stop("The .eqs file not found in the current folder!")
+    filedir.split <- strsplit(EQSmodel, "/")[[1]]
+    n <- length(filedir.split)
+    filedir <- paste(filedir.split[1:(n - 1)], collapse = "/")
+    if (n > 1) 
+        setwd(filedir)
+    outname <- strsplit(filedir.split[n], "\\.")[[1]][1]
+    file.out <- paste(outname, ".out", sep = "")
+    lenstring <- paste("LEN=", as.integer(LEN), sep = "")
+    filepathin <- paste("IN=", EQSmodel, sep = "")
+    fileout <- paste("OUT=", file.out, sep = "")
+    serstring <- paste("SER=", serial, "\n", sep = "")
+    if (length(Rmatrix) > 1) {
+        if (is.na(datname)) {
+            warning(paste("No filename for data specified! ", 
+                outname, ".dat is used", sep = ""))
+            datname <- paste(outname, ".dat", sep = "")
+        }
+        write.table(as.matrix(Rmatrix), file = datname, col.names = FALSE, 
+            row.names = FALSE)
+    }
+    EQScmd <- paste(deparse(EQSpgm), filepathin, fileout, lenstring, 
+        serstring)
+    RetCode <- system(EQScmd, intern = FALSE, ignore.stderr = TRUE, 
+        wait = TRUE, input = NULL)
+    if (RetCode == 0) {
+        success <- TRUE
+    }
+    else {
+        success <- FALSE
+    }
+    return(success = success)
+}
+
 ##############################################
 ## Function to find missing data patterns   ##
 ## Function rsem.pattern                    ##
 ##############################################
-rsem.pattern<-function(x,print=TRUE){
+rsem.pattern<-function(x,print=FALSE){
   ## This function generate missing data patterns
   ## INPUT
   ## x: data set
@@ -26,9 +326,13 @@ rsem.pattern<-function(x,print=TRUE){
   ##                      the remaining corresponding to missing variables
   if (missing(x)) stop("A data set has to be provided!")
   if (!is.matrix(x)) x<-as.matrix(x)
-  
+  y<-x
+  ## check to see if all data are missing
+  M<-is.na(x)
+  nM<-max(apply(M,1,sum))
   n<-dim(x)[1]
   p<-dim(x)[2]
+  if (nM==p) stop("Some cases have missing data on all variables. Please delete them first.")
   misorder<-rep(0,n)
   for (i in 1:n){
     misorderj<-0
@@ -39,9 +343,11 @@ rsem.pattern<-function(x,print=TRUE){
   }
   ## Combine data with missing pattern indicator
   ## order data according to misorder
+  #id<-1:n
   temp<-order(misorder)
   x<-x[temp,]
   misn<-misorder[temp]
+  #id<-id[temp]
   
   ##identifying the subscripts of missing variables and put them in misinfo;
   mi<-0; nmi<-0;oi<-0; noi<-0;
@@ -114,8 +420,55 @@ rsem.pattern<-function(x,print=TRUE){
   
   if (print) print(mispat)
   
-  invisible(list(misinfo=misinfo, mispat=mispat, x=x))
+  invisible(list(misinfo=misinfo, mispat=mispat, x=x, y=y))
 }
+
+##############################################
+## Weight function for each case            ##
+## Function rsem.weight                     ##
+##############################################
+
+rsem.weight<-function(x, varphi, mu0, sig0){
+	##x<-xpattern$x
+	if (!is.matrix(x)) x<-as.matrix(x)
+	n<-dim(x)[1]
+	p<-dim(x)[2]
+	prob<-1-varphi ## chi-square p-value
+	wi1all<-wi2all<-NULL
+	if (varphi==0){
+		wi1all<-wi2all<-rep(1, n)
+	}else{
+		for (i in 1:n){
+			## take out one row of x
+			xi<-x[i, ]
+			xid<-which(!is.na(xi))
+			xic<-xi[xid]
+			
+			ximu<-mu0[xid]
+			xisig<-as.matrix(sig0[xid, xid])
+			xidiff<-as.matrix(xic-ximu)
+			
+			di2<-t(xidiff)%*%solve(xisig)%*%xidiff
+			di<-sqrt(di2)
+			
+			pi<-length(xic)
+    		chip<-qchisq(prob, pi)
+    		ck<-sqrt(chip)
+    		cbeta<-( pi*pchisq(chip,pi+2) + chip*(1-prob) )/pi
+    		
+			if (di <= ck){
+				wi1all<-c(wi1all, 1)
+				wi2all<-c(wi2all, 1/cbeta)
+			}else{
+				wi1<-ck/di
+				wi1all<-c(wi1all, wi1)
+				wi2all<-c(wi2all, wi1*wi1/cbeta)
+			}
+		}		
+    }       
+    return(list(w1=wi1all, w2=wi2all))
+}
+
 
 ##############################################
 ## Function to calculate ssq of a matrix    ##
@@ -293,7 +646,8 @@ rsem.emmusig<-function(xpattern, varphi=.1, max.it=1000, st='i'){
   if (n_it>=max.it) warning("The maximum number of iteration was exceeded. Please increase max.it in the input.")
   rownames(sig1)<-colnames(sig1)
   names(mu1)<-colnames(sig1)
-  list(mu=mu1, sigma=sig1, max.it=n_it)
+  weight<-rsem.weight(xpattern$y, varphi, mu1, sig1)
+  list(mu=mu1, sigma=sig1, max.it=n_it, weight=weight)
 }
 
 ##############################################
@@ -908,22 +1262,7 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
           txt <- sprintf("    %-13s %9.3f %8.3f %8.3f %8.3f\n",
                          name, est[i], se[i], z, pval)
         }
-      } else {
-        if(is.na(se[i])) {
-          txt <- sprintf("    %-13s %9.3f %8.3f                   %8.3f %8.3f\n", name, est[i], se[i], est.std[i], est.std.all[i])
-        } else if(se[i] == 0) {
-          txt <- sprintf("    %-13s %9.3f                            %8.3f %8.3f\n", name, est[i], est.std[i], est.std.all[i])
-        } else if(est[i]/se[i] > 9999.999) {
-          txt <- sprintf("    %-13s %9.3f %8.3f                   %8.3f %8.3f\n", name, est[i], se[i], est.std[i], est.std.all[i])
-        } else if(!z.stat) {
-          txt <- sprintf("    %-13s %9.3f %8.3f                   %8.3f %8.3f\n", name, est[i], se[i], est.std[i], est.std.all[i])
-        } else {
-          z <- est[i]/se[i]
-          pval <- 2 * (1 - pnorm( abs(z) ))
-          txt <- sprintf("    %-13s %9.3f %8.3f %8.3f %8.3f %8.3f %8.3f\n",
-                         name, est[i], se[i], z, pval, est.std[i], est.std.all[i])
-        }
-      }
+      } 
       cat(txt)
     }
     
@@ -1128,26 +1467,6 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
     
   } # parameter estimates
   
-  
-  # R-square?
-  if(rsquare) {
-    r2 <- rsquare(object, est.std.all=est.std.all)
-    if(object@Data@ngroups == 1L) r2 <- list(r2)
-    for(g in 1:object@Data@ngroups) {
-      if(object@Data@ngroups > 1) {
-        cat("R-Square Group ", object@Data@group.label[[g]], 
-            ":\n\n", sep="")       
-      } else {
-        cat("R-Square:\n\n")
-      } 
-      for(i in 1:length(r2[[g]])) {
-        t1.txt <- sprintf("    %-13s %9.3f\n", names(r2[[g]])[i], 
-                          r2[[g]][i])
-        cat(t1.txt)
-      }
-      if(g < object@Data@ngroups) cat("\n")
-    }
-  }
   
   # modification indices?
   if(modindices) {

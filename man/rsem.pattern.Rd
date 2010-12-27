@@ -8,7 +8,7 @@ Obtaining missing data patterns
 This function obtains the missing data patterns and the number of cases in each patterns. It also tells the number of observed variables and their indices for each pattern.
 }
 \usage{
-rsem.pattern(x, print=TRUE)
+rsem.pattern(x, print=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -16,7 +16,7 @@ rsem.pattern(x, print=TRUE)
 A matrix as data
 }
   \item{print}{
-Whether to print the missing data pattern. The default is TRUE.
+Whether to print the missing data pattern. The default is FALSE.
 }
 }
 \details{

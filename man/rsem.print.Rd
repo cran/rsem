@@ -2,13 +2,14 @@
 \alias{rsem.print}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Orgnize the output for Lavaan with roubust s.e. and test statistics
+Organize the output for Lavaan with robust s.e. and test statistics
 }
 \description{
-Orgnize the output for Lavaan with roubust s.e. and test statistics. Modified from the print function of Lavaan.
+Organize the output for Lavaan with robust s.e. and test statistics. Modified from the print function of Lavaan.
 }
 \usage{
-rsem.print(object, robust.se, robust.fit, estimates=TRUE, fit.measures=FALSE, standardized=FALSE, rsquare=FALSE, std.nox=FALSE, modindices=FALSE)
+rsem.print(object, robust.se, robust.fit, estimates=TRUE, fit.measures=FALSE, 
+standardized=FALSE, rsquare=FALSE, std.nox=FALSE, modindices=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -28,7 +29,7 @@ Show parameter estimates
   \item{standardized}{standardized coefficients}
   \item{rsquare}{R square for dependent variables.}
   \item{std.nox}{to add}
-  \item{modindices}{Modification indeces}
+  \item{modindices}{Modification indices}
 }
 \details{
 This function will run the robust analysis and output results.

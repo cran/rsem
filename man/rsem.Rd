@@ -8,7 +8,9 @@ The main function for robust SEM analysis
 This is the function to carry out all analysis.
 }
 \usage{
-rsem(dset, select, EQSmodel, moment=TRUE, varphi=.1, st='i', max.it=1000, eqsdata='data.txt', eqsweight='weight.txt', EQSpgm="C:/Progra~1/EQS61/WINEQS.EXE", serial="1234")
+rsem(dset, select, EQSmodel, moment=TRUE, varphi=.1, st='i', max.it=1000, 
+eqsdata='data.txt', eqsweight='weight.txt', EQSpgm="C:/Progra~1/EQS61/WINEQS.EXE", 
+serial="1234")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
