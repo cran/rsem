@@ -16,7 +16,7 @@ rsem(dset, select, EQSmodel, moment=TRUE, varphi=.1, st='i', max.it=1000, eqsdat
 A data matrix or a data frame
 }
   \item{select}{
-A vector to select variables for SEM analysis. If omitted, all variables in the data set will be used.
+Variables to be seleted for SEM analysis. If omitted, all variables in the data set will be used.
 }
   \item{moment}{With mean structure. For covariance only, set moment=FALSE.}
   \item{EQSmodel}{

@@ -5,7 +5,7 @@
 rsem.indexv function
 }
 \description{
-Internal function
+Internal function.
 }
 \usage{
 rsem.indexv(p, select)

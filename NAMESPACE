@@ -1,4 +1,11 @@
-export(rsem.Ascov,rsem.DP,rsem.emmusig,rsem.index,rsem.indexv,rsem.indexvc,rsem.pattern,rsem,rsem.ssq,rsem.switch,rsem.vec,rsem.vech)
+# Default NAMESPACE created by R
+# Remove the previous line if you edit this file
 
+# Export all names
+exportPattern(".")
 
-
+# Import all packages listed as Imports or Depends
+import(
+  semdiag,
+  MASS
+)
