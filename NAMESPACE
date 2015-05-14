@@ -2,7 +2,9 @@
 # Remove the previous line if you edit this file
 
 # Export all names
-exportPattern(".")
+exportPattern("rsem", "rsem.Ascov", "rsem.DP", "rsem.emmusig", "rsem.fit",
+"rsem.gname", "rsem.pattern", "rsem.print", "rsem.se", "rsem.weight", "semdiag.call.eqs", "semdiag.run.eqs", "semdiag.combinations", "semdiag.read.eqs", "rsem.lavaan"
+)
 
 # Import all packages listed as Imports or Depends
 import(

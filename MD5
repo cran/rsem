@@ -1,6 +1,7 @@
-b7822939e43af49d00c08c635565bc32 *DESCRIPTION
-ee5cc799a7db7748f71893f6bc1e1b11 *NAMESPACE
-9002c06314d8f831db222e170f73d5a2 *R/rsem.R
+037065093e823a47ca9f324a1e1d89c6 *DESCRIPTION
+58ef47f7b1e4d14709096e0c662f0d0d *NAMESPACE
+644dc9d607351ab0e1abc4b75a951c29 *R/lav_fun.R
+eb2c2e472588ae0cbae076e828d81ff6 *R/rsem.R
 7c613ff36504a677208ff6f8897fe789 *data/mardiamv25.txt.gz
 8dac236e9c3015da3dd24a990da9b9e0 *data/mardiamv25_contaminated.txt.gz
 26c06e2af9e03d995fc6f9d5078a6ec7 *man/mardiamv25.Rd
@@ -14,6 +15,7 @@ d644b361dd0fac49826208f37f1a7713 *man/rsem.gname.Rd
 29a12836fa5db50568eb15e3e70414a6 *man/rsem.index.Rd
 62bc00b7958f5963246cf866fd3fb2d6 *man/rsem.indexv.Rd
 97e79ad81942f2a0de1ca2b85077ed51 *man/rsem.indexvc.Rd
+0d30e88ab431bc327916a7550c5ebe9b *man/rsem.lavaan.Rd
 8177ed3d18e055b97529308c764dd3c2 *man/rsem.pattern.Rd
 fba22240200df6e90b39914e08fa933c *man/rsem.print.Rd
 d82595b174243c0a091e8b3eef261c8f *man/rsem.se.Rd

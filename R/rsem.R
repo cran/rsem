@@ -1271,8 +1271,8 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
     se[object@ParTable$free!=0]<-robust.se$se[[1]]
     
     for(g in 1:object@Data@ngroups) {
-      ov.names <- lavaan:::vnames(object@ParTable, "ov", group=g)
-      lv.names <- lavaan:::vnames(object@ParTable, "lv", group=g)
+      ov.names <- lavNames(object@ParTable, "ov", group=g)
+      lv.names <- lavNames(object@ParTable, "lv", group=g)
       
       # group header
       if(object@Data@ngroups > 1) {
@@ -1508,13 +1508,10 @@ rsem.se<-function(object, gamma){
   samplestats<-object@SampleStats
   
   ## calculate the W and Delta matrices
-  WD<-lavaan:::computeExpectedInformation(object@Model, object@SampleStats, extra=TRUE)
-  Delta <- attr(WD, "Delta")
-  WLS.V <- attr(WD, "WLS.V")
+  Delta <- computeDelta(object@Model)
+  WLS.V <- NULL
+  WLS.V[[1]] <- inspect(object, "wls.v")
   
-  ## a different way to calculate W and Delta
-  ## lavaan:::compute.Abeta.complete(object@Fit@Sigma.hat)
-  ## lavaan:::computeDelta(object@Model)
   ## the covariance matrix for the parameters
   vcov <- vector("list", length=samplestats@ngroups)
   se <- vector("list", length=samplestats@ngroups)
@@ -1550,9 +1547,9 @@ rsem.fit<-function(object, gamma, musig){
   ## the TRML statistic
   
   ## calculate the W and Delta matrices
-  WD<-lavaan:::computeExpectedInformation(object@Model, object@SampleStats, extra=TRUE)
-  Delta <- attr(WD, "Delta")
-  WLS.V <- attr(WD, "WLS.V")
+  Delta <- computeDelta(object@Model)
+  WLS.V <- NULL
+  WLS.V[[1]] <- inspect(object, "wls.v")
   
   ngroups<-samplestats@ngroups
   TRML<-TAML<-TCRADF<-TRF <- vector("list", length=samplestats@ngroups)
@@ -1595,9 +1592,9 @@ rsem.fit<-function(object, gamma, musig){
     sigmahat<-musig$sigma[ovnames,ovnames]
     muhat<-musig$mu[ovnames]
     if (object@Model@meanstructure){
-      r<-c(muhat-object@Fit@Mu.hat[[g]], vech(sigmahat-object@Fit@Sigma.hat[[g]]))
+      r<-c(muhat-object@Fit@Mu.hat[[g]], lav_matrix_vech(sigmahat-object@Fit@Sigma.hat[[g]]))
     }else{
-      r<-vech(sigmahat-object@Fit@Sigma.hat[[g]])
+      r<-lav_matrix_vech(sigmahat-object@Fit@Sigma.hat[[g]])
     }
     r<-matrix(r, length(r), 1)
     radf<-t(r)%*%Q%*%r
@@ -1617,4 +1614,41 @@ rsem.fit<-function(object, gamma, musig){
     TRF[[g]]<-temp
   }
   return(list(TRML=TRML, TAML=TAML, TCRADF=TCRADF, TRF=TRF))
+}
+
+rsem.lavaan<-function(dset, model, select,  varphi=.1, max.it=1000){
+  if (missing(dset)) stop("A data set is needed!")
+  if (!is.matrix(dset)) dset<-data.matrix(dset)
+  n<-dim(dset)[1]
+  p<-dim(dset)[2]
+  cat("Sample size n =", n, "\n")
+  cat("Total number of variables q =", p, "\n\n")
+  
+  if (missing(select)) select<-c(1:p)	
+  cat("The following",length(select),"variables are selected for SEM models \n")
+  cat(colnames(dset)[select], "\n\n")
+  p_v<-length(select)
+  
+  pvs<-p_v+p_v*(p_v+1)/2
+  
+  ## missing data patterns
+  miss_pattern<-rsem.pattern(dset)
+  x<-miss_pattern$x                             ## data after ordering
+  misinfo<-miss_pattern$misinfo                 ## missing data pattern
+  
+  totpat<-dim(misinfo)[1]                       ## total number of patterns
+  cat("There are", totpat, "missing data patterns. They are \n")
+  print(misinfo)
+  cat("\n")
+  ## run EM
+  musig<-rsem.emmusig(miss_pattern, varphi=varphi)
+  if (musig$max.it >= max.it){ warning("\nMaximum iteration for EM is exceeded and the results may not be trusted. Change max.it to a greater number.\n") }
+  
+  res.lavaan<-sem(model, sample.cov=musig$sigma, sample.mean=musig$mu, sample.nobs=n,mimic='EQS')
+  ascov<-rsem.Ascov(miss_pattern, musig, varphi=varphi)
+  robust.se<-rsem.se(res.lavaan, ascov$Gamma)
+  robust.fit <- rsem.fit(res.lavaan, ascov$Gamma, musig)
+  cat("\nFit statistics\n")
+  rsem.print(res.lavaan, robust.se, robust.fit)
+  invisible(list(musig=musig, lavaan=res.lavaan, ascov=ascov, se=robust.se, fit=robust.fit))
 }
