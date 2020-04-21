@@ -11,3 +11,6 @@ import(
   lavaan,
   MASS
 )
+
+importFrom("stats", "na.omit", "pchisq", "pf", "pnorm", "qchisq")
+importFrom("utils", "read.fwf", "write.table")

@@ -527,7 +527,7 @@ rsem.emmusig<-function(xpattern, varphi=.1, max.it=1000, st='i'){
       for (i in 1:n1){
         xi<-x[i,]
         xi0<-xi-mu0
-        di2<-xi0%*%sigin%*%xi0
+        di2<-as.numeric(xi0%*%sigin%*%xi0)
         di<-sqrt(di2)
         ## Huber weight functions
         if (di<=ck){
@@ -539,7 +539,7 @@ rsem.emmusig<-function(xpattern, varphi=.1, max.it=1000, st='i'){
         } ## end Huber weight
         sumw1<-sumw1+wi1;
         xxi0<-xi0%*%t(xi0)
-        sumx<-sumx+wi1*xi
+        sumx<-sumx+wi1*c(xi)
         sumxx<-sumxx+c(wi2)*xxi0
         sumw2<-sumw2+wi2
       } ## end for
@@ -569,7 +569,7 @@ rsem.emmusig<-function(xpattern, varphi=.1, max.it=1000, st='i'){
         xi_o<-xi[o1]
         xi0_o<-xi_o-mu_o
         stdxi_o<-sigin_oo%*%xi0_o
-        di2<-xi0_o%*%stdxi_o
+        di2<-as.numeric(xi0_o%*%stdxi_o)
         di<-sqrt(di2)
         if (di<=ck1){ ##Huber weight
           wi1<-1
@@ -583,7 +583,7 @@ rsem.emmusig<-function(xpattern, varphi=.1, max.it=1000, st='i'){
         xi[m1]<-xm1
         xi0<-xi-mu0
         xxi0<-xi0%*%t(xi0)
-        sumx<-sumx+wi1*xi
+        sumx<-sumx+wi1*c(xi)
         sumxx<-sumxx+c(wi2)*xxi0+delt
         sumw2<-sumw2+wi2
       } ##end for 1:n1  
@@ -615,7 +615,7 @@ rsem.emmusig<-function(xpattern, varphi=.1, max.it=1000, st='i'){
           xi_o<-xi[oj]
           xi0_o<-xi_o - mu_o
           stdxi_o<-sigin_oo%*%xi0_o
-          di2<-xi0_o%*%stdxi_o
+          di2<-as.numeric(xi0_o%*%stdxi_o)
           di<-sqrt(di2)
           if (di<=ckj){ ##Huber weight
             wi1<-1
@@ -629,7 +629,7 @@ rsem.emmusig<-function(xpattern, varphi=.1, max.it=1000, st='i'){
           xi[mj]<-xmj
           xi0<-xi-mu0
           xxi0<-xi0%*%t(xi0)
-          sumx<-sumx+wi1*xi
+          sumx<-sumx+wi1*c(xi)
           sumxx<-sumxx+c(wi2)*xxi0+delt
           sumw2<-sumw2+wi2
         }
@@ -1146,22 +1146,28 @@ rsem<-function(dset, select, EQSmodel, moment=TRUE, varphi=.1, st='i', max.it=10
 
 rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures=FALSE, standardized=FALSE, 
                      rsquare=FALSE, std.nox=FALSE, modindices=FALSE) {
+
+  # extract 'test' slot from fitted lavaan object
+  test <- lavInspect(object, "test")
+  lavpartable <- parTable(object)
+  lavoptions <- lavInspect(object, "options")
+
   ## print TML
   t0.txt <- sprintf("  %-40s", "Statistic")
   t1.txt <- sprintf("  %10s", "ML")
   cat(t0.txt, t1.txt, "\n", sep="")
   t0.txt <- sprintf("  %-40s", "Value")  
-  t1.txt <- sprintf("  %10.3f", object@Fit@test[[1]]$stat)
+  t1.txt <- sprintf("  %10.3f", test[[1]]$stat)
   cat(t0.txt, t1.txt, "\n", sep="")
   
   # 2. degrees of freedom
   t0.txt <- sprintf("  %-40s", "Degrees of freedom")
-  t1.txt <- sprintf("  %10i", object@Fit@test[[1]]$df); 
+  t1.txt <- sprintf("  %10i", test[[1]]$df); 
   cat(t0.txt, t1.txt, "\n", sep="")
   
   # 3. P-value
   t0.txt <- sprintf("  %-40s", "P-value")
-  t1.txt <- sprintf("  %10.3f", object@Fit@test[[1]]$pvalue)
+  t1.txt <- sprintf("  %10.3f", test[[1]]$pvalue)
   cat(t0.txt, t1.txt, "\n\n", sep="")
   
   ## Print T_RML
@@ -1266,19 +1272,21 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
       cat(txt)
     }
     
-    est <- object@Fit@est
-    se  <- object@Fit@se
-    se[object@ParTable$free!=0]<-robust.se$se[[1]]
+    est <- lavpartable$est
+    se  <- lavpartable$se
+    se[lavpartable$free != 0] <- robust.se$se[[1]]
     
-    for(g in 1:object@Data@ngroups) {
-      ov.names <- lavNames(object@ParTable, "ov", group=g)
-      lv.names <- lavNames(object@ParTable, "lv", group=g)
+    ngroups <- lavInspect(object, "ngroups")
+    group.label <- lavInspect(object, "group.label")
+    for(g in 1:ngroups) {
+      ov.names <- lavNames(object, "ov", group=g)
+      lv.names <- lavNames(object, "lv", group=g)
       
       # group header
-      if(object@Data@ngroups > 1) {
+      if(ngroups > 1) {
         if(g > 1) cat("\n\n")
         cat("Group ", g, 
-            " [", object@Data@group.label[[g]], "]:\n\n", sep="")
+            " [", group.label[[g]], "]:\n\n", sep="")
       }
       
       # estimates header
@@ -1309,19 +1317,19 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
         }
       }
       
-      NAMES <- object@ParTable$rhs
+      NAMES <- lavpartable$rhs
       
       # 1a. indicators ("=~") (we do show dummy indicators)
-      mm.idx <- which( object@ParTable$op == "=~" & 
-        !object@ParTable$lhs %in% ov.names &
-        object@ParTable$group == g)
+      mm.idx <- which( lavpartable$op == "=~" & 
+        !lavpartable$lhs %in% ov.names &
+         lavpartable$group == g)
       if(length(mm.idx)) {
         cat("Latent variables:\n")
         lhs.old <- ""
-        NAMES[mm.idx] <- makeNames(  object@ParTable$rhs[mm.idx],
-                                     object@ParTable$label[mm.idx])
+        NAMES[mm.idx] <- makeNames(  lavpartable$rhs[mm.idx],
+                                     lavpartable$label[mm.idx] )
         for(i in mm.idx) {
-          lhs <- object@ParTable$lhs[i]
+          lhs <- lavpartable$lhs[i]
           if(lhs != lhs.old) cat("  ", lhs, " =~\n", sep="")
           print.estimate(name=NAMES[i], i)
           lhs.old <- lhs
@@ -1330,15 +1338,15 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
       }
       
       # 1b. formative/composites ("<~")
-      fm.idx <- which( object@ParTable$op == "<~" &
-        object@ParTable$group == g)
+      fm.idx <- which( lavpartable$op == "<~" &
+        lavpartable$group == g)
       if(length(fm.idx)) {
         cat("Composites:\n")
         lhs.old <- ""
-        NAMES[fm.idx] <- makeNames(  object@ParTable$rhs[fm.idx],
-                                     object@ParTable$label[fm.idx])
+        NAMES[fm.idx] <- makeNames(  lavpartable$rhs[fm.idx],
+                                     lavpartable$label[fm.idx])
         for(i in fm.idx) {
-          lhs <- object@ParTable$lhs[i]
+          lhs <- lavpartable$lhs[i]
           if(lhs != lhs.old) cat("  ", lhs, " <~\n", sep="")
           print.estimate(name=NAMES[i], i)
           lhs.old <- lhs
@@ -1347,14 +1355,14 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
       }
       
       # 2. regressions
-      eqs.idx <- which(object@ParTable$op == "~" & object@ParTable$group == g)
+      eqs.idx <- which(lavpartable$op == "~" & lavpartable$group == g)
       if(length(eqs.idx) > 0) {
         cat("Regressions:\n")
         lhs.old <- ""
-        NAMES[eqs.idx] <- makeNames(  object@ParTable$rhs[eqs.idx],
-                                      object@ParTable$label[eqs.idx])
+        NAMES[eqs.idx] <- makeNames(  lavpartable$rhs[eqs.idx],
+                                      lavpartable$label[eqs.idx])
         for(i in eqs.idx) {
-          lhs <- object@ParTable$lhs[i]
+          lhs <- lavpartable$lhs[i]
           if(lhs != lhs.old) cat("  ", lhs, " ~\n", sep="")
           print.estimate(name=NAMES[i], i)
           lhs.old <- lhs
@@ -1363,17 +1371,17 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
       }
       
       # 3. covariances
-      cov.idx <- which(object@ParTable$op == "~~" & 
-        !object@ParTable$exo &
-        object@ParTable$lhs != object@ParTable$rhs &
-        object@ParTable$group == g)
+      cov.idx <- which(lavpartable$op == "~~" & 
+        !lavpartable$exo &
+        lavpartable$lhs != lavpartable$rhs &
+        lavpartable$group == g)
       if(length(cov.idx) > 0) {
         cat("Covariances:\n")
         lhs.old <- ""
-        NAMES[cov.idx] <- makeNames(  object@ParTable$rhs[cov.idx],
-                                      object@ParTable$label[cov.idx])
+        NAMES[cov.idx] <- makeNames(  lavpartable$rhs[cov.idx],
+                                      lavpartable$label[cov.idx])
         for(i in cov.idx) {
-          lhs <- object@ParTable$lhs[i]
+          lhs <- lavpartable$lhs[i]
           if(lhs != lhs.old) cat("  ", lhs, " ~~\n", sep="")
           print.estimate(name=NAMES[i], i)
           lhs.old <- lhs
@@ -1382,13 +1390,13 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
       }
       
       # 4. intercepts/means
-      int.idx <- which(object@ParTable$op == "~1" & 
-        !object@ParTable$exo &
-        object@ParTable$group == g)
+      int.idx <- which(lavpartable$op == "~1" & 
+        !lavpartable$exo &
+        lavpartable$group == g)
       if(length(int.idx) > 0) {
         cat("Intercepts:\n")
-        NAMES[int.idx] <- makeNames(  object@ParTable$lhs[int.idx],
-                                      object@ParTable$label[int.idx])
+        NAMES[int.idx] <- makeNames(  lavpartable$lhs[int.idx],
+                                      lavpartable$label[int.idx])
         for(i in int.idx) {
           print.estimate(name=NAMES[i], i)
         }
@@ -1396,16 +1404,16 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
       }
       
       # 5. (residual) variances
-      var.idx <- which(object@ParTable$op == "~~" &
-        !object@ParTable$exo &
-        object@ParTable$lhs == object@ParTable$rhs &
-        object@ParTable$group == g)
+      var.idx <- which(lavpartable$op == "~~" &
+        !lavpartable$exo &
+        lavpartable$lhs == lavpartable$rhs &
+        lavpartable$group == g)
       if(length(var.idx) > 0) {
         cat("Variances:\n")
-        NAMES[var.idx] <- makeNames(  object@ParTable$rhs[var.idx],
-                                      object@ParTable$label[var.idx])
+        NAMES[var.idx] <- makeNames(  lavpartable$rhs[var.idx],
+                                      lavpartable$label[var.idx])
         for(i in var.idx) {
-          if(object@Options$mimic == "lavaan") {
+          if(lavoptions$mimic == "lavaan") {
             print.estimate(name=NAMES[i], i, z.stat=TRUE)
           } else {
             print.estimate(name=NAMES[i], i, z.stat=TRUE)
@@ -1417,11 +1425,11 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
     } # ngroups
     
     # 6. variable definitions
-    def.idx <- which(object@ParTable$op == ":=")
+    def.idx <- which(lavpartable$op == ":=")
     if(length(def.idx) > 0) {
-      if(object@Data@ngroups > 1) cat("\n")
+      if(ngroups > 1) cat("\n")
       cat("Defined parameters:\n")
-      NAMES[def.idx] <- makeNames(  object@ParTable$lhs[def.idx], "")
+      NAMES[def.idx] <- makeNames(  lavpartable$lhs[def.idx], "")
       for(i in def.idx) {
         print.estimate(name=NAMES[i], i)
       }
@@ -1429,21 +1437,21 @@ rsem.print<-function(object, robust.se, robust.fit, estimates=TRUE, fit.measures
     }
     
     # 7. constraints
-    cin.idx <- which((object@ParTable$op == "<" | 
-      object@ParTable$op == ">"))
-    ceq.idx <- which(object@ParTable$op == "==")
+    cin.idx <- which((lavpartable$op == "<" | 
+      lavpartable$op == ">"))
+    ceq.idx <- which(lavpartable$op == "==")
     if(length(cin.idx) > 0L || length(ceq.idx) > 0L) {
       # set small negative values to zero, to avoid printing " -0.000"
       slack <- ifelse(abs(est) < 1e-5, 0, est)
       #slack[cin.idx] <- object@Model@cin.function(object@Fit@x)
       #slack[ceq.idx] <- object@Model@ceq.function(object@Fit@x)
       
-      if(object@Data@ngroups > 1 && length(def.idx) == 0L) cat("\n")
+      if(ngroups > 1 && length(def.idx) == 0L) cat("\n")
       cat("Constraints:                               Slack (>=0)\n")
       for(i in c(cin.idx,ceq.idx)) {
-        lhs <- object@ParTable$lhs[i]
-        op <- object@ParTable$op[i]
-        rhs <- object@ParTable$rhs[i]
+        lhs <- lavpartable$lhs[i]
+        op <- lavpartable$op[i]
+        rhs <- lavpartable$rhs[i]
         if(rhs == "0" && op == ">") {
           con.string <- paste(lhs, " - 0", sep="")
         } else if(rhs == "0" && op == "<") {
@@ -1505,24 +1513,27 @@ rsem.se<-function(object, gamma){
   	gamma<-NULL
   	gamma[[1]]<-temp 	
   }
-  samplestats<-object@SampleStats
+ 
   
   ## calculate the W and Delta matrices
-  Delta <- computeDelta(object@Model)
-  WLS.V <- NULL
-  WLS.V[[1]] <- inspect(object, "wls.v")
+  Delta <- lavTech(object, "delta")
+  WLS.V <- lavTech(object, "wls.v")
+  #WLS.V[[1]] <- inspect(object, "wls.v")
   
   ## the covariance matrix for the parameters
-  vcov <- vector("list", length=samplestats@ngroups)
-  se <- vector("list", length=samplestats@ngroups)
-  for(g in 1:samplestats@ngroups) {
-  	gamma[[g]]<-rsem.switch.gamma(gamma[[g]], object@Data@ov.names[[g]])
+  ngroups <- lavInspect(object, "ngroups")
+  nobs    <- lavInspect(object, "nobs")
+  vcov <- vector("list", length=ngroups)
+  se <- vector("list", length=ngroups)
+  for(g in 1:ngroups) {
+    OV.NAMES <- lavNames(object, "ov", group = g)
+  	gamma[[g]]<-rsem.switch.gamma(gamma[[g]], OV.NAMES)
     A<-t(Delta[[g]])%*%WLS.V[[g]]%*%Delta[[g]]
     B<-t(Delta[[g]])%*%WLS.V[[g]]%*%gamma[[g]]%*%WLS.V[[g]]%*%Delta[[g]]
     D<-solve(A)
     vcov[[g]] <- D%*%B%*%D
     ## calculate the sandwich type standard errors
-    se[[g]]<-sqrt(diag(vcov[[g]])/(object@SampleStats@nobs[[g]]-1))
+    se[[g]]<-sqrt(diag(vcov[[g]])/(nobs[g]-1))
   }
   
   ## return to the standard errors and variance and covariance matrix
@@ -1539,20 +1550,25 @@ rsem.fit<-function(object, gamma, musig){
     gamma<-NULL
     gamma[[1]]<-temp 	
   }
+
+  ngroups       <- lavInspect(object, "ngroups")
+  nobs          <- lavInspect(object, "nobs")
+  test          <- lavInspect(object, "test")
+  meanstructure <- lavInspect(object, "meanstructure")
+  lavimplied    <- lavTech(object, "implied")
   
-  samplestats<-object@SampleStats
-  for(g in 1:samplestats@ngroups) {
-  	gamma[[g]]<-rsem.switch.gamma(gamma[[g]], object@Data@ov.names[[g]])
+  for(g in 1:ngroups) {
+    OV.NAMES <- lavNames(object, "ov", group = g)
+  	gamma[[g]]<-rsem.switch.gamma(gamma[[g]], OV.NAMES)
   }
   ## the TRML statistic
   
   ## calculate the W and Delta matrices
-  Delta <- computeDelta(object@Model)
-  WLS.V <- NULL
-  WLS.V[[1]] <- inspect(object, "wls.v")
+  Delta <- lavTech(object, "delta")
+  WLS.V <- lavTech(object, "wls.v")
+  #WLS.V[[1]] <- inspect(object, "wls.v")
   
-  ngroups<-samplestats@ngroups
-  TRML<-TAML<-TCRADF<-TRF <- vector("list", length=samplestats@ngroups)
+  TRML<-TAML<-TCRADF<-TRF <- vector("list", length=ngroups)
   ## need to decide whether n or n-1 used here.
   ## object@Fit@test[[1]]$stat<-object@Fit@test[[1]]$stat*87/88
   ## for TRML & TAML  
@@ -1560,13 +1576,13 @@ rsem.fit<-function(object, gamma, musig){
     A<-t(Delta[[g]])%*%WLS.V[[g]]%*%Delta[[g]]    
     D<-solve(A)
     U<-WLS.V[[g]] - WLS.V[[g]]%*%Delta[[g]]%*%D%*%t(Delta[[g]])%*%WLS.V[[g]]
-    df<-object@Fit@test[[g]]$df
-    n<-object@SampleStats@nobs[[g]]
+    df<-test[[g]]$df
+    n<-nobs[g]
     n1<-n-1
     ## for TRML
     trUT<-sum(diag(U%*%gamma[[g]]))
     m<-df/trUT
-    trml<-m*object@Fit@test[[g]]$stat
+    trml<-m*test[[g]]$stat
     df.rml<-df
     p.rml<-1-pchisq(trml, df)
     temp<-c(trml, df.rml, p.rml)
@@ -1576,7 +1592,7 @@ rsem.fit<-function(object, gamma, musig){
     trUT2<-sum(diag(U%*%gamma[[g]]%*%U%*%gamma[[g]]))
     m1<-trUT/trUT2
     m2<-(trUT)^2/trUT2
-    taml<-m1*object@Fit@test[[g]]$stat
+    taml<-m1*test[[g]]$stat
     p.aml<-1-pchisq(taml, m2)
     temp<-c(taml, m2, p.aml)
     names(temp)<-c('Statistic','df','p-value')
@@ -1588,19 +1604,19 @@ rsem.fit<-function(object, gamma, musig){
     D<-solve(gamma[[g]])
     B<-solve(t(Delta[[g]])%*%D%*%Delta[[g]])
     Q<-D - D%*%Delta[[g]]%*%B%*%t(Delta[[g]])%*%D
-    ovnames<-object@Data@ov.names[[g]]
+    ovnames<-lavNames(object, "ov", group = g)
     sigmahat<-musig$sigma[ovnames,ovnames]
     muhat<-musig$mu[ovnames]
-    if (object@Model@meanstructure){
-      r<-c(muhat-object@Fit@Mu.hat[[g]], lav_matrix_vech(sigmahat-object@Fit@Sigma.hat[[g]]))
+    if (meanstructure){
+      r<-c(muhat-lavimplied[[g]]$mean, lav_matrix_vech(sigmahat-lavimplied[[g]]$cov))
     }else{
-      r<-lav_matrix_vech(sigmahat-object@Fit@Sigma.hat[[g]])
+      r<-lav_matrix_vech(sigmahat-lavimplied[[g]]$cov)
     }
     r<-matrix(r, length(r), 1)
     radf<-t(r)%*%Q%*%r
-    n<-object@Data@nobs[[g]]
+    n<-nobs[g]
     tcradf<-radf*n1/(1+radf)
-    df<-object@Fit@test[[g]]$df
+    df<-test[[g]]$df
     p.cradf<-1-pchisq(tcradf, df)
     temp<-c(tcradf, df, p.cradf)
     names(temp)<-c('Statistic','df','p-value')

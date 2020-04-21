@@ -1,7 +1,6 @@
-037065093e823a47ca9f324a1e1d89c6 *DESCRIPTION
-58ef47f7b1e4d14709096e0c662f0d0d *NAMESPACE
-644dc9d607351ab0e1abc4b75a951c29 *R/lav_fun.R
-eb2c2e472588ae0cbae076e828d81ff6 *R/rsem.R
+dcf20bb24a432002f1fe073991ae3344 *DESCRIPTION
+91643ceb5a0400ae2b1da62ab05ccfaf *NAMESPACE
+1b3a8b6a3e772ebda405508825733e89 *R/rsem.R
 7c613ff36504a677208ff6f8897fe789 *data/mardiamv25.txt.gz
 8dac236e9c3015da3dd24a990da9b9e0 *data/mardiamv25_contaminated.txt.gz
 26c06e2af9e03d995fc6f9d5078a6ec7 *man/mardiamv25.Rd
