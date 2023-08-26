@@ -1,17 +1,15 @@
 \name{rsem-package}
 \alias{rsem-package}
 \docType{package}
-\title{Robust Structural Equation Modeling with Missing Data and Auxiliary
+\title{Robust Structural Equation Modeling with Missing Data and Auxiliary Variables
 }
 \description{
-This package estimates means and covariance matrix of multiple variables with missing data using Huber weight and then estimates a SEM model using either lavaan or EQS.
+A robust procedure is implemented to estimate means and covariance matrix of multiple variables with missing data using Huber weight and then to estimate a structural equation model.
 }
 \details{
 \tabular{ll}{
 Package: \tab rsem\cr
 Type: \tab Package\cr
-Version: \tab 0.4.3\cr
-Date: \tab 2010-12-27\cr
 License: \tab GPL-2\cr
 LazyLoad: \tab yes\cr
 }
@@ -22,6 +20,6 @@ Ke-Hai Yuan and Zhiyong Zhang
 Maintainer: Zhiyong Zhang <zhiyongzhang@nd.edu>
 }
 \references{
-Ke-Hai Yuan and Zhiyong Zhang (2011) Robust Structural Equation Modeling with Missing Data and Auxiliary Variables
+Yuan, K.-H., & Zhang, Z. (2012). Robust structural equation modeling with missing data and auxiliary variables. Psychometrika, 77(4), 803-826. https://doi.org/10.1007/s11336-012-9282-4
 }
 

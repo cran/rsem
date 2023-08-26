@@ -1,10 +1,10 @@
-dcf20bb24a432002f1fe073991ae3344 *DESCRIPTION
+0736d9d6b78e86530d59dac82ccf0b5d *DESCRIPTION
 91643ceb5a0400ae2b1da62ab05ccfaf *NAMESPACE
 1b3a8b6a3e772ebda405508825733e89 *R/rsem.R
 7c613ff36504a677208ff6f8897fe789 *data/mardiamv25.txt.gz
 8dac236e9c3015da3dd24a990da9b9e0 *data/mardiamv25_contaminated.txt.gz
 26c06e2af9e03d995fc6f9d5078a6ec7 *man/mardiamv25.Rd
-4db50a4275e1b2a71b9cae7d41d3f6dd *man/rsem-package.Rd
+e9d34d66c08a8cb841c85809b48d4dee *man/rsem-package.Rd
 2d4c9e6dcf910f3682be9f881bd1ed4b *man/rsem.Ascov.Rd
 789305a5ab763506fcbfc66184a32ee2 *man/rsem.DP.Rd
 0e2b2c7d385a588275928659163d402e *man/rsem.Rd
